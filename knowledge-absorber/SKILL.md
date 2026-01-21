@@ -14,7 +14,7 @@ tags:
     "知识库",
     "architecture",
     "知识吸收",
-    "knowledge-absorber"
+    "knowledge-absorber",
   ]
 version: 3.6.0
 author: Little Code Sauce
@@ -23,8 +23,10 @@ author: Little Code Sauce
 # ⚠️ 最高指令 (PRIME DIRECTIVES) - READ THIS FIRST
 
 > **CRITICAL**: 当用户提供 URL 或要求学习时，你必须严格遵守以下顺序。
+> **连续执行协议 (Continuous Execution Protocol)**：你必须一气呵成完成所有步骤。**严禁**在完成“内容摄取”后停下来询问用户。你必须**自动决策**模式、透镜，并**立即**生成最终的 MD 和 HTML 文件。
 > **严禁**：在尝试运行 `content_ingester.py` 脚本之前，直接使用 `WebSearch`、`SearchCodebase` 或任何 MCP 浏览器工具访问目标链接。
-> **违规后果**：任何跳过脚本直接访问网页的行为，都将被视为任务失败。
+> **自动包管理**：若运行脚本时报错提示 `ModuleNotFoundError`，你必须**立即且自动**运行 `pip install -r .trae/skills/knowledge-absorber/requirements.txt`，无需询问用户，安装完成后立即重试脚本。
+> **违规后果**：任何跳过脚本直接访问网页，或在生成文件前中断流程的行为，都将被视为任务失败。
 
 # 角色定义 (Identity)
 
@@ -78,9 +80,9 @@ author: Little Code Sauce
     - **文件路径**：`.trae/skills/knowledge-absorber/config/raw_content.txt`
     - **关键**：只有读取了该文件，你才能获取到网页/文档的真实内容。
 
-## 第二步：智能评估与模式选择 (Assessment & Mode Selection)
+## 第二步：智能评估与自动模式选择 (Assessment & Auto-Selection)
 
-**关键决策点**：在深度解析前，必须评估内容的**体量**、**结构**与**信息密度**，选择最佳策略。
+**关键原则**：你必须根据读取的内容**自主决定**模式和透镜。**禁止询问用户**。
 
 ### 1. 网页摄取策略 (URL Ingestion Strategy)
 
@@ -104,6 +106,7 @@ author: Little Code Sauce
   - **指引**：明确指引用户**手动保存**网页为 HTML 文件、PDF 或截图，然后直接提供文件路径或粘贴内容，供 AI 进行分析。
 
 ### 2. 关键信息锚点检测 (Anchor Detection)
+
 - **非内容元素清洗 (Non-Content Purification)**
   - **强制清洗**：在分析前，必须自动识别并剔除原文中的**噪音数据**，包括：
     - **UI干扰**：登录弹窗文本、侧边栏推荐、页脚链接、导航栏。
@@ -119,15 +122,21 @@ author: Little Code Sauce
 - **信息密度评估**：若总结后的信息密度下降超过 50%（如删除了具体技术架构或公式），必须重新调整，增加技术细节。
 
 ### 3. 错误处理与用户指引 (Error Handling)
+
 - **验证码提示**：若自动化工具提示 `Anti-bot detected (Captcha)`，请告知用户手动干预或使用手动复制模式。
 - **致命错误**：如果脚本完全失败，引导用户使用本地文件模式。
 
-### 2. 模式选择 (Mode Selection)
+### 2. 自动模式选择 (Auto-Mode Selection)
+
+> **指令**：直接分析内容并应用以下模式，无需用户确认。
+
 #### 模式 A：即时全解模式 (Instant Mode)
+
 - **触发条件**：单篇文章、博客、单一概念、中短篇文档（低信息密度）。
 - **策略**：直接生成一篇完整的 MD/HTML 笔记。
 
 #### 模式 B：系列攻坚模式 (Series Mode)
+
 - **触发条件**：书籍（全本）、大型代码库、系统性教程、多层级 Wiki。
 - **策略**：
   1.  先生成“目录/大纲分析”。
@@ -135,15 +144,17 @@ author: Little Code Sauce
   3.  **禁止**一次性尝试解析整本书的所有细节（会超出 Token 限制）。
 
 #### 模式 C：深度注疏模式 (Deep Exegesis Mode)
+
 - **触发条件**：经典文献（如《易经》、《道德经》）、数学公式推导、核心算法源码（高信息密度）。
 - **强制结构**：必须采用 **“原文 (Original) -> 白话 (Vernacular) -> 深度解析 (Analysis)”** 的三元结构。
 - **密度阈值**：如果 100 字的原文需要 1000 字的解释，即为“高密度”。
 
 ## 第三步：多维思维透镜 (The Four-World Lenses)
 
-**核心原则**：根据内容属性，切换对应的“思维模型”进行降维打击。
+**核心原则**：根据内容属性，**自动切换**对应的“思维模型”进行降维打击。**禁止询问用户选择哪个透镜**。
 
 ### 透镜 I：机制世界 (Mechanistic Lens)
+
 - **适用**：技术 (Tech)、工程 (Engineering)、硬科学 (Hard Science)。
 - **核心逻辑**：System (系统), Structure (结构), Function (功能)。
 - **深度要求**：严禁“点到为止”。必须解释**内部黑盒**，使用“拆解时钟”的心态，将每个零件的功能讲透。
@@ -153,6 +164,7 @@ author: Little Code Sauce
   - **Best Practice**：最佳实践与反模式。
 
 ### 透镜 II：意义世界 (Hermeneutic Lens)
+
 - **适用**：国学 (Sinology)、经典 (Classics)、历史 (History)、文学 (Literature)。
 - **核心逻辑**：Context (语境), Origin (源流), Interpretation (诠释)。
 - **深度要求**：严禁过度简化。必须保留文字的**多义性**和**历史厚度**。
@@ -168,11 +180,13 @@ author: Little Code Sauce
   - **象数 (Symbolism)**：(针对易学) 卦象、爻位、数理。
 
 ### 透镜 III：行为世界 (Behavioral Lens)
+
 - **适用**：社会科学 (Social Sci)、心理学 (Psychology)、经济学 (Economics)。
 - **核心逻辑**：Incentive (激励), Interaction (博弈), Bias (偏差)。
 - **深度要求**：挖掘**隐藏动机**。不仅看人们做了什么，更要看他们**为什么**这么做，以及环境如何塑造了行为。
 
 ### 透镜 IV：行动世界 (Pragmatic Lens)
+
 - **适用**：商业 (Business)、管理 (Management)、自我提升 (Self-Help)。
 - **核心逻辑**：Action (行动), Result (结果), Efficiency (效率)。
 - **深度要求**：拒绝“成功学”。必须包含**具体的颗粒度**，提供“拿起就能用”的操作手册。
@@ -229,8 +243,8 @@ author: Little Code Sauce
 ### 2. 输出规范
 
 - **输出路径**：`[Project_Root]/.trae/skills/knowledge-absorber/data/`
-- **Markdown 文件名**：`knowledge_{YYYYMMDD}_{Title}.md`
-- **HTML 文件名**：`knowledge_{YYYYMMDD}_{Title}.html`
+- **Markdown 文件名**：`File_{YYYYMMDD}_{Title}.md`
+- **HTML 文件名**：`File_{YYYYMMDD}_{Title}.html`
 
 ### 3. 文件写入 (File Writing)
 
@@ -243,6 +257,7 @@ author: Little Code Sauce
 HTML 文件必须包含完整的 CSS 样式块 `<style>...</style>`，根据透镜选择：
 
 #### 策略 A：现代清爽 (Modern Light)
+
 - **适用**：透镜 I, III, IV。
 - **CSS 核心规范**：
   - Font: Inter, system-ui, sans-serif.
@@ -254,6 +269,7 @@ HTML 文件必须包含完整的 CSS 样式块 `<style>...</style>`，根据透�
   - Layout: Padding 40px; Border-radius: 12px;
 
 #### 策略 B：水墨清茶 (Ink & Tea)
+
 - **适用**：透镜 II (国学)。
 - **CSS 核心规范**：
   - Font: "Noto Serif SC", "Songti SC", serif.
@@ -262,9 +278,12 @@ HTML 文件必须包含完整的 CSS 样式块 `<style>...</style>`，根据透�
   - Layout: Padding 40px; Line-height: 1.8.
 
 #### 策略 C：深红警戒 (Red Variant)
+
 - **适用**：警示内容。
 - **CSS 核心规范**：Based on Modern Light, but with Red (#ef4444) accents and dark mode hints.
 
-## 第六步：完工确认
+## 第六步：完工确认与自动交付
 
-告知用户已生成双版本文件，并给出下一步建议。
+1.  **自动交付**：告知用户已生成双版本文件，并提供文件路径。
+2.  **下一步建议**：根据内容提供 1-2 个后续学习建议。
+3.  **禁止等待**：生成完文件后直接结束当前 turn。

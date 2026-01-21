@@ -66,6 +66,8 @@ def download_image(url, save_dir):
 def process_url_with_drission(url, max_chars):
     log(f"Attempting extraction with DrissionPage: {url}")
     try:
+        from DrissionPage import ChromiumPage, ChromiumOptions
+        from bs4 import BeautifulSoup
         co = ChromiumOptions()
         # 自动搜索常见浏览器路径
         browser_paths = [
