@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+rapidocr_onnxruntime
+pypdf
+html2text
+DrissionPage
