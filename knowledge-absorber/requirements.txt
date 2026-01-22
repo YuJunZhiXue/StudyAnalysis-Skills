@@ -4,3 +4,7 @@ rapidocr_onnxruntime
 pypdf
 html2text
 DrissionPage
+python-docx
+Pillow
+opencv-python-headless
+pywin32
