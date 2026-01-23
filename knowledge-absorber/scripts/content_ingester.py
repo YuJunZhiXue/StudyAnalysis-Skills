@@ -148,19 +148,36 @@ class BrowserDriver:
             if path and os.path.exists(path):
                 co.set_browser_path(path)
             
-            co.headless(True)
+            # [LCS-FIX] 2026-01-23: Disable headless to bypass 403/404 on Zhihu/Cloudflare
+            co.headless(False) 
             co.set_argument('--no-sandbox')
             co.set_argument('--disable-gpu')
-            co.set_user_agent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+            co.set_user_agent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
             
             page = ChromiumPage(co)
             page.get(url)
+            time.sleep(3)
+            
+            # [LCS-FIX] Handling Zhihu/Generic Login Popups
+            try:
+                # Zhihu specific close button class
+                close_btn = page.ele('.Modal-closeButton', timeout=2)
+                if close_btn:
+                    log("Detected Zhihu Login Popup. Smashing it.")
+                    close_btn.click()
+                    time.sleep(1)
+            except Exception:
+                pass
+
+            # Scroll to trigger lazy loading
+            log("Scrolling to capture full content...")
+            page.scroll.to_bottom()
             time.sleep(2)
             
             # Anti-bot check
             title = page.title.lower() if page.title else ""
             if any(x in title for x in ["just a moment", "access denied", "attention required"]):
-                log("Challenge detected, waiting...")
+                log("Challenge detected. Waiting for user or auto-bypass...")
                 time.sleep(5)
                 
             return page.html, None
