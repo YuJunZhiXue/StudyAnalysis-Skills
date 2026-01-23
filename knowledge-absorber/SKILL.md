@@ -28,11 +28,12 @@ author: 叫我小杨同学的小码酱
 先运行脚本获取干净的 Markdown 数据。脚本会自动清洗 HTML 噪音并处理多模态内容（PDF/OCR）。
 
 1.  **运行摄取脚本**：
-    - **Command**: `python .trae/skills/knowledge-absorber/scripts/content_ingester.py "INPUT_URL_OR_PATH"`
+    - **Command**: `python [SKILL_PATH]/scripts/content_ingester.py "INPUT_URL_OR_PATH"`
+    - **注意**: `[SKILL_PATH]` 是本技能所在的实际路径（如 `.trae/skills/knowledge-absorber/`）。
     - **依赖检查**: 首次运行若报错，请提示用户安装依赖。
 
 2.  **读取结果**：
-    - 读取 `.trae/skills/knowledge-absorber/config/raw_content.txt`。
+    - 读取 `[SKILL_PATH]/config/raw_content.txt`。
     - 该文件已通过 `html2text` 清洗，可直接用于分析。
 
 ## 第二步：真理锚定 (Truth Anchoring) [✨核心升级]
@@ -59,7 +60,7 @@ author: 叫我小杨同学的小码酱
 读取系统提示词以激活“首席认知架构师”人格。
 
 1.  **加载 Prompt**：
-    - **Command**: `cat .trae/skills/knowledge-absorber/references/system_prompt.md`
+    - **Command**: `cat [SKILL_PATH]/references/system_prompt.md`
     - **注意**：将读取到的内容作为 System Prompt 注入当前上下文。
 
 ## 第四步：生成教学内容 (Generate Content)
