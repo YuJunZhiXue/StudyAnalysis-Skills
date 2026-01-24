@@ -1,3 +1,4 @@
+---
 name: knowledge-absorber
 description: 深度解析链接、文档或代码，生成“全能导师级”的教学笔记（零基础直达精通）。具备“真理锚定”校验能力，自动识别幻觉与过时信息。
 tags:
