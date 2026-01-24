@@ -8,6 +8,25 @@ import re
 import zipfile
 import shutil
 import io
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Global tqdm and rich handle for safe access
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
+try:
+    from rich.console import Console
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+    from rich.panel import Panel
+    from rich.live import Live
+    from rich.table import Table
+    console = Console()
+except ImportError:
+    console = None
+    Progress = None
 
 # ==========================================
 # AUTO-DEPENDENCY INSTALLER
@@ -119,8 +138,20 @@ class Config:
 # ==========================================
 # LOGGING
 # ==========================================
-def log(msg):
-    print(f"[Ingester] {msg}")
+def log(msg, style="blue"):
+    if console:
+        console.print(f"[bold {style}][Ingester][/bold {style}] {msg}")
+    else:
+        print(f"[Ingester] {msg}")
+
+def log_success(msg):
+    log(msg, "green")
+
+def log_error(msg):
+    log(msg, "red")
+
+def log_warning(msg):
+    log(msg, "yellow")
 
 # ==========================================
 # BROWSER DRIVER
@@ -158,6 +189,12 @@ class BrowserDriver:
             page.get(url)
             time.sleep(3)
             
+            # [LCS-FIX] 2026-01-25: Multi-scroll to trigger CSDN/Zhihu lazy loading
+            for i in range(3):
+                log(f"Scrolling ({i+1}/3)...")
+                page.scroll.to_bottom()
+                time.sleep(2)
+            
             # [LCS-FIX] Handling Zhihu/Generic Login Popups
             try:
                 # Zhihu specific close button class
@@ -168,17 +205,6 @@ class BrowserDriver:
                     time.sleep(1)
             except Exception:
                 pass
-
-            # Scroll to trigger lazy loading
-            log("Scrolling to capture full content...")
-            page.scroll.to_bottom()
-            time.sleep(2)
-            
-            # Anti-bot check
-            title = page.title.lower() if page.title else ""
-            if any(x in title for x in ["just a moment", "access denied", "attention required"]):
-                log("Challenge detected. Waiting for user or auto-bypass...")
-                time.sleep(5)
                 
             return page.html, None
         except Exception as e:
@@ -194,6 +220,7 @@ class ContentParser:
     def __init__(self):
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         self.ocr_engine = None
+        self.drission_lock = threading.Lock()
 
     def get_ocr_engine(self):
         if not self.ocr_engine:
@@ -217,6 +244,23 @@ class ContentParser:
             return f"[OCR Error: {e}]"
 
     def clean_html(self, html, base_url=""):
+        # Fix encoding if needed (UTF-8)
+        if isinstance(html, bytes):
+            html = html.decode('utf-8', errors='replace')
+        else:
+            # Check for mojibake (UTF-8 bytes misread as Latin-1)
+            try:
+                # If it's already a string, check if it contains characters that look like misread UTF-8
+                # Common pattern: multiple high-byte characters in a row
+                if any(ord(c) > 127 for c in html):
+                    # Attempt to re-encode to bytes then decode properly
+                    test_html = html.encode('latin-1').decode('utf-8')
+                    # If it decoded without error and changed the string, use it
+                    if test_html != html:
+                        html = test_html
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                pass
+
         if not html2text:
             log("html2text not installed. Falling back to simple text extraction.")
             soup = BeautifulSoup(html, 'html.parser')
@@ -248,14 +292,16 @@ class ContentParser:
             resp = requests.get(url, headers=self.headers, timeout=15)
             if resp.status_code in [403, 429, 503]:
                 log(f"Requests {resp.status_code}. Invoking DrissionPage.")
-                html, err = BrowserDriver.fetch_html(url)
+                with self.drission_lock:
+                    html, err = BrowserDriver.fetch_html(url)
                 if not html: return f"Error: {err}"
             else:
                 resp.raise_for_status()
                 html = resp.text
         except Exception as e:
             log(f"Requests failed: {e}. Invoking DrissionPage.")
-            html, err = BrowserDriver.fetch_html(url)
+            with self.drission_lock:
+                html, err = BrowserDriver.fetch_html(url)
             if not html: return f"Error: {err}"
 
         meta = self.extract_metadata(html)
@@ -264,41 +310,48 @@ class ContentParser:
         return f"{meta}\n=== CONTENT ===\n{markdown}"
 
     def extract_images_from_docx(self, file_path):
-        """Extracts images from docx and performs OCR"""
+        """Extracts images from docx and performs OCR (Concurrent)"""
         log("Extracting images from DOCX for OCR...")
-        ocr_results = []
         
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
                     # Find image files
                     image_files = [f for f in zip_ref.namelist() if f.startswith('word/media/') and f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
-                    image_files.sort() # Try to keep order
+                    image_files.sort() # Keep order
                     
                     if not image_files:
                         log("No images found in DOCX.")
                         return ""
 
-                    log(f"Found {len(image_files)} images. Processing...")
+                    log(f"Found {len(image_files)} images. Processing concurrently...")
                     
-                    for i, img_file in enumerate(image_files):
-                        # Extract
-                        zip_ref.extract(img_file, temp_dir)
-                        full_path = os.path.join(temp_dir, img_file)
+                    results_map = {}
+                    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+                        future_to_img = {}
+                        for i, img_file in enumerate(image_files):
+                            # Extract
+                            zip_ref.extract(img_file, temp_dir)
+                            full_path = os.path.join(temp_dir, img_file)
+                            future_to_img[executor.submit(self.perform_ocr, full_path)] = (i, img_file)
                         
-                        # OCR
-                        log(f"OCR Processing image {i+1}/{len(image_files)}: {img_file}")
-                        text = self.perform_ocr(full_path)
-                        
-                        if text and not text.startswith("[OCR"):
-                            ocr_results.append(f"\n[IMAGE {i+1} CONTENT (OCR)]:\n{text}\n")
-                        else:
-                            ocr_results.append(f"\n[IMAGE {i+1}]: {text}\n")
+                        for future in as_completed(future_to_img):
+                            idx, img_name = future_to_img[future]
+                            try:
+                                text = future.result()
+                                if text and not text.startswith("[OCR"):
+                                    results_map[idx] = f"\n[IMAGE {idx+1} CONTENT (OCR)]:\n{text}\n"
+                                else:
+                                    results_map[idx] = f"\n[IMAGE {idx+1}]: {text}\n"
+                            except Exception as e:
+                                results_map[idx] = f"\n[IMAGE {idx+1}]: OCR Error: {e}\n"
                             
             except zipfile.BadZipFile:
                 log("Failed to unzip DOCX. Is it valid?")
                 return "\n[ERROR: Failed to extract images from DOCX]"
                 
+        # Combine in order
+        ocr_results = [results_map[i] for i in range(len(image_files))]
         return "\n=== DETECTED IMAGE TEXT ===\n" + "\n".join(ocr_results) if ocr_results else ""
 
     def _extract_docx_content(self, file_path):
@@ -311,51 +364,59 @@ class ContentParser:
         
         return text_content + "\n" + image_content
 
-    def _extract_pdf_content(self, file_path):
-        log(f"Extracting content from PDF: {file_path}")
+    def _process_pdf_page(self, page_idx, page):
+        """Processes a single PDF page: text + images (OCR)"""
         content = ""
+        # Text
+        page_text = page.extract_text()
+        if page_text:
+            content += f"\n=== PAGE {page_idx+1} TEXT ===\n{page_text}\n"
+        
+        # Images
+        try:
+            images = page.images
+            if images:
+                for j, image in enumerate(images):
+                    ext = os.path.splitext(image.name)[1] or ".png"
+                    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp_img:
+                        tmp_img.write(image.data)
+                        tmp_img_path = tmp_img.name
+                    
+                    ocr_text = self.perform_ocr(tmp_img_path)
+                    if ocr_text and not ocr_text.startswith("[OCR") and not ocr_text.startswith("[OCR: No text"):
+                        content += f"\n[PAGE {page_idx+1} IMAGE {j+1} CONTENT (OCR)]:\n{ocr_text}\n"
+                    
+                    try: os.remove(tmp_img_path)
+                    except: pass
+        except Exception as img_err:
+            log(f"Error extracting images from page {page_idx+1}: {img_err}")
+            
+        return content
+
+    def _extract_pdf_content(self, file_path):
+        log(f"Extracting content from PDF: {file_path} (Concurrent)")
         try:
             reader = pypdf.PdfReader(file_path)
             num_pages = len(reader.pages)
-            log(f"PDF has {num_pages} pages.")
+            log(f"PDF has {num_pages} pages. Processing concurrently...")
             
-            for i, page in enumerate(reader.pages):
-                # Text
-                page_text = page.extract_text()
-                if page_text:
-                    content += f"\n=== PAGE {i+1} TEXT ===\n{page_text}\n"
+            results_map = {}
+            with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+                future_to_page = {executor.submit(self._process_pdf_page, i, reader.pages[i]): i for i in range(num_pages)}
                 
-                # Images
-                try:
-                    # pypdf >= 3.0.0 uses page.images
-                    images = page.images
-                    if images:
-                        log(f"Found {len(images)} images on page {i+1}")
-                        for j, image in enumerate(images):
-                            # Determine extension
-                            ext = os.path.splitext(image.name)[1]
-                            if not ext: ext = ".png"
-                            
-                            # Save to temp
-                            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp_img:
-                                tmp_img.write(image.data)
-                                tmp_img_path = tmp_img.name
-                            
-                            # OCR
-                            ocr_text = self.perform_ocr(tmp_img_path)
-                            if ocr_text and not ocr_text.startswith("[OCR") and not ocr_text.startswith("[OCR: No text"):
-                                content += f"\n[PAGE {i+1} IMAGE {j+1} CONTENT (OCR)]:\n{ocr_text}\n"
-                            
-                            # Cleanup
-                            try: os.remove(tmp_img_path)
-                            except: pass
-                except Exception as img_err:
-                    log(f"Error extracting images from page {i+1}: {img_err}")
+                for future in as_completed(future_to_page):
+                    idx = future_to_page[future]
+                    try:
+                        results_map[idx] = future.result()
+                    except Exception as e:
+                        results_map[idx] = f"\n[ERROR processing PAGE {idx+1}: {e}]"
+            
+            # Combine in order
+            full_content = "".join([results_map[i] for i in range(num_pages)])
+            return full_content
                     
         except Exception as e:
             return f"\n[ERROR processing PDF: {e}]"
-            
-        return content
 
     def convert_doc_to_docx(self, doc_path):
         try:
@@ -451,29 +512,95 @@ class ContentParser:
 # ==========================================
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="URL or Local File Path")
+    parser.add_argument("inputs", nargs="+", help="One or more URLs or Local File Paths")
     args = parser.parse_args()
     
     cp = ContentParser()
     
-    # Check if input is a local file
-    if os.path.exists(args.input) and os.path.isfile(args.input):
-        result = cp.process_file(args.input)
-    else:
-        # Assume URL
-        if not args.input.startswith(('http://', 'https://')):
-            log(f"Input '{args.input}' does not exist as a file. Trying as URL...")
-            if not args.input.startswith('http'):
-                 args.input = 'https://' + args.input
-        
-        result = cp.process_url(args.input)
+    log(f"Starting ingestion for {len(args.inputs)} items...", style="cyan")
     
-    out = Config.get_output_path()
+    results_map = {}
+    max_workers = os.cpu_count() or 4
+    
+    if Progress:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(bar_width=None, pulse_style="bright_blue"),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            console=console,
+            expand=True
+        ) as progress:
+            main_task = progress.add_task("[cyan]Overall Progress", total=len(args.inputs))
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_input = {}
+                for i, inp in enumerate(args.inputs):
+                    if os.path.exists(inp) and os.path.isfile(inp):
+                        future_to_input[executor.submit(cp.process_file, inp)] = i
+                    else:
+                        if not inp.startswith(('http://', 'https://')):
+                            if not inp.startswith('http'):
+                                inp = 'https://' + inp
+                        future_to_input[executor.submit(cp.process_url, inp)] = i
+                
+                for future in as_completed(future_to_input):
+                    idx = future_to_input[future]
+                    try:
+                        results_map[idx] = future.result()
+                        log_success(f"Completed: {args.inputs[idx][:50]}...")
+                    except Exception as e:
+                        results_map[idx] = f"Error processing input {args.inputs[idx]}: {e}"
+                        log_error(f"Failed: {args.inputs[idx][:50]}... Error: {e}")
+                    progress.update(main_task, advance=1)
+    else:
+        # Fallback to tqdm or simple loop
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_input = {}
+            for i, inp in enumerate(args.inputs):
+                if os.path.exists(inp) and os.path.isfile(inp):
+                    future_to_input[executor.submit(cp.process_file, inp)] = i
+                else:
+                    if not inp.startswith(('http://', 'https://')):
+                        if not inp.startswith('http'):
+                            inp = 'https://' + inp
+                    future_to_input[executor.submit(cp.process_url, inp)] = i
+            
+            iterable = as_completed(future_to_input)
+            if tqdm is not None:
+                iterable = tqdm(iterable, total=len(args.inputs), desc="Ingesting Content")
+                
+            for future in iterable:
+                idx = future_to_input[future]
+                try:
+                    results_map[idx] = future.result()
+                except Exception as e:
+                    results_map[idx] = f"Error processing input {args.inputs[idx]}: {e}"
+    
+    # Combine results
+    final_output = ""
+    for i in range(len(args.inputs)):
+        source_url = args.inputs[i]
+        content = results_map.get(i, "Error: Content missing")
+        
+        separator = f"\n\n" + "="*60 + "\n"
+        separator += f"--- SOURCE {i+1}: {source_url} ---\n"
+        separator += "="*60 + "\n\n"
+        
+        final_output += separator + content
+    
+    output_path = Config.get_output_path()
     try:
-        with open(out, "w", encoding="utf-8") as f: f.write(result)
-        log(f"Saved {len(result)} chars to {out}")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(final_output)
+        log_success(f"All content saved to: {output_path}")
+        
+        if console:
+            console.print(Panel(f"[bold green]Ingestion Complete![/bold green]\nProcessed [cyan]{len(args.inputs)}[/cyan] sources.", title="Success", expand=False))
+            
     except Exception as e:
-        log(f"Save failed: {e}")
+        log_error(f"Failed to save output: {e}")
 
 if __name__ == "__main__":
     main()

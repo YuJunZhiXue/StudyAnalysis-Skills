@@ -8,3 +8,5 @@ python-docx
 Pillow
 opencv-python-headless
 pywin32
+tqdm
+rich
