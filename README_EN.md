@@ -1,88 +1,132 @@
 <div align="center">
 
+# 📚 Knowledge Absorber
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Version: 4.0.0](https://img.shields.io/badge/Version-4.0.0-green.svg)](CHANGELOG.md)
+
+**Universal AI Skill Module | Compatible with Trae, Claude, Gemini, VS Code Copilot, etc.**
+
 [🇺🇸 English](README_EN.md) | [🇨🇳 简体中文](README.md)
+
+---
+
+**Knowledge Absorber** is an independent "External Brain" module. It empowers AI agents with the ability to deeply read long documents, analyze complex content, and generate structured "Knowledge Crystals" (Markdown + HTML).
 
 </div>
 
-# 📚 Knowledge Absorber
+---
 
-> **Universal AI Deep Learning & Knowledge Extraction Module** | Compatible with Trae, Claude, Gemini, VS Code Copilot, etc.
+## 🚀 What's New
 
-**Knowledge Absorber** is an "External Brain" designed for AI assistants. It automates the transformation of messy web pages, documents, and images into structured, high-density "Knowledge Crystals," breaking the limitations of long-context understanding and multimodal parsing.
+> **v4.0.0 "Mixed Script Edition"**
+
+- **⚡ High-Speed Concurrent Engine**: Introduced `ThreadPoolExecutor` and `threading.Lock` for simultaneous scraping of multiple links/files, improving processing efficiency by 300%+.
+- **🎨 Visual Progress System**: Integrated `Rich` library for high-contrast color tracking, providing a clear task board and real-time progress feedback in the terminal.
+- **⚓ Truth Anchoring Protocol**: Added `【💡 Deep Linking】` analysis to automatically identify factual conflicts or complementarities across multiple sources.
+- **🔍 Deep Protocol Alignment**: Mandatory integration of the "Seven Holographic Lenses" protocol, ensuring outputs include "Mind Maps" and "Pitfall Guides".
+- **🛡️ Enhanced Robustness**: Optimized SSL verification for offline testing and added auto-fix for character encoding issues (Mojibake) on major platforms.
 
 ---
 
-## 🆕 Latest Updates
+## 📂 Portability Guide
 
-### 1. ⚡ Self-Healing Dependencies
-- **New**: Built-in `AUTO-DEPENDENCY INSTALLER`. The script automatically reads `requirements.txt` and silently installs missing libraries on its first run, eliminating manual setup.
+This module is designed for **"Folder-Level Plug & Play"**.
+AI assistants typically scan specific configuration folders in the project root. To let other AIs (like Claude or Gemini) recognize this skill, you simply need to **rename the parent directory**.
 
-### 2. 👁️ Multimodal Deep Parsing
-- **OCR Enhanced**: Integrated `RapidOCR` for automated text extraction from web images, local photos, and embedded images within PDF/Docx files.
-- **Full Format Support**: Native parsing for `.doc` (via Word conversion), `.docx`, `.pdf`, and `.jpg/png/bmp`.
+### 📂 Directory Structure Adaptation
 
-### 3. 🛡️ Level-4 Smart Ingestion
-- **Level 1 (Requests)**: Turbo fetching.
-- **Level 2 (DrissionPage)**: Automated browser driver to bypass JS rendering and basic anti-scraping.
-- **Level 3 (MCP Protocol)**: System-level tools as a fallback.
-- **Level 4 (Manual)**: Intelligent user-guided import.
+Assuming your `skills` folder is located at the project root:
 
-### 4. 🧠 7D Cognitive Lenses
-- **Dimension Fission**: Analyzes knowledge through the "Seven-Sided Prism" (Hermeneutic, Evolutionary, Mechanistic, Systemic, Behavioral, Adversarial, Pragmatic) across four cognitive worlds.
+1.  **For Trae** (Default):
+    ```text
+    Project_Root/
+    └── .trae/              <-- Keep original name
+        └── skills/
+            └── knowledge-absorber/
+    ```
+
+2.  **For Claude Projects**:
+    *   Rename `.trae` to `.claude`.
+    ```text
+    Project_Root/
+    └── .claude/            <-- Rename to .claude
+        └── skills/
+            └── knowledge-absorber/
+    ```
+
+3.  **For Gemini Advanced / AI Studio**:
+    *   Rename `.trae` to `.gemini`.
+    ```text
+    Project_Root/
+    └── .gemini/            <-- Rename to .gemini
+        └── skills/
+            └── knowledge-absorber/
+    ```
+
+4.  **For VS Code (Copilot/Cline)**:
+    *   Rename `.trae` to `.vscode`.
+    ```text
+    Project_Root/
+    └── .vscode/            <-- Rename to .vscode
+        └── skills/
+            └── knowledge-absorber/
+    ```
+
+> **💡 Core Principle**: AI agents usually have permission to read hidden folders (starting with `.`). As long as the path is correct and you explicitly instruct the AI to "use this skill", it will work.
 
 ---
 
-## 🚀 Quick Start
+## 🛠️ Installation & Usage
 
-### 📂 Directory Structure
-```text
-knowledge-absorber/
-├── scripts/             # Core scripts (with self-healing logic)
-├── references/          # 7D Cognitive Lens Protocol (system_prompt.md)
-├── config/              # [Auto-generated] Cleaned raw text (raw_content.txt)
-├── SKILL.md             # Skill activation protocol (Path decoupled)
-└── requirements.txt     # Core dependencies
+### Step 1: Environment Preparation
+Ensure Python 3.8+ is installed on your machine.
+Run the following command in the `knowledge-absorber` directory:
+```bash
+pip install -r requirements.txt
 ```
 
-### 🛠️ Environment Preparation
-1. Ensure Python 3.8+ is installed.
-2. Chrome or Edge browser is recommended (for Level 2 Ingestion).
-3. **Run**: Just execute the script; dependencies will auto-install:
-   ```bash
-   python scripts/content_ingester.py "https://example.com"
-   ```
+### Step 2: When to Activate
+Do not use this skill for simple Google searches. Summon it for **"High Cognitive Load"** scenarios:
 
-### 💡 Examples
-- *"Deeply parse this webpage: https://example.com"*
-- *"Read this PDF and generate knowledge notes"*
-- *"Analyze the core logic in this architecture diagram (image)"*
+1.  **Heavy Lifting**: When facing hundreds of pages of PDFs, technical framework docs (e.g., BMad, React Source), or ancient texts.
+2.  **Knowledge Crystals Needed**: When you need more than a simple summary—you need a beautifully formatted, archivable HTML card.
+3.  **Cross-Source Analysis**: When you need to scrape and compare multiple links (e.g., Zhihu + Blog + Official Docs) for deep Truth Anchoring.
 
----
+### Step 3: Workflow
+You don't need to manually run complex command-line instructions. Just use **Natural Language** in the chat, and the AI will proxy the execution:
 
-## 🚀 Portability
-This module supports **"Folder-Level Plug-and-Play."**
-When porting between environments (e.g., Trae to Claude):
-1. **Path Decoupling**: `SKILL.md` uses a `[SKILL_PATH]` placeholder. Ensure your AI knows this path or replace it with the actual absolute path.
-2. **Locations**: 
-   - **Trae**: `.trae/skills/`
-   - **Claude**: `.claude/skills/`
-   - **Gemini**: `.gemini/skills/`
+*   **User Instruction Examples**:
+    > "Help me deeply analyze this link: `https://docs.bmad-method.org/`"
+    > "Read `manual.pdf` and apply the [Mechanistic Lens] to generate knowledge cards."
+
+*   **AI Execution Logic**:
+    1.  **Ingestion**: Automatically calls `scripts/content_ingester.py` to scrape and clean content concurrently.
+    2.  **Lens Analysis**: Applies deep reasoning based on protocols defined in `SKILL.md` (e.g., Mechanistic Lens, Evolution Lens).
+    3.  **Delivery**: Automatically generates `.md` (Deep Notes) and `.html` (Visual Cards).
 
 ---
 
 ## 📦 Outputs
-Notes are saved in a `knowledge_{date}_{title}/` folder in your project root:
-1.  **Markdown Deep Notes (`.md`)**: Includes ASCII art demos and 7D deep analysis.
-2.  **HTML Visual Cards (`.html`)**: Features Mermaid diagrams and adaptive styling.
-3.  **Raw Data (`config/raw_content.txt`)**: Cleaned raw data for backup.
+
+This skill automatically generates files in two formats (located in the `data/` directory):
+
+1.  **Markdown Deep Notes (`.md`)**:
+    *   Includes metadata, concept icebreaking, deep deconstruction, mind maps, and pitfall guides.
+    *   Supports "Mixed Script Protocol" (Traditional/Simplified) or "Tech Stack Templates".
+2.  **HTML Visual Cards (`.html`)**:
+    *   Beautiful formatting, perfect for sharing or archiving in a knowledge base.
+    *   Supports Dark/Light mode adaptation, with perfected code highlighting and Mermaid diagram display.
 
 ---
 
-## 🤝 Contribution & Feedback
-If you find this useful, please give it a Star! ⭐ 
-Feel free to submit an Issue if you encounter any problems.
+## 🤖 Skill Protocol
+
+The core logic is defined in the `SKILL.md` file.
+If you want to modify the AI's way of thinking (e.g., changing the depth of analysis or output style), please edit `SKILL.md` directly.
 
 ---
-<div align="center">
-Made with ❤️ for Learners
-</div>
+
+> **Maintainer**: Little Code Sauce
+> **Version**: v4.0.0 (Mixed Script Edition)
