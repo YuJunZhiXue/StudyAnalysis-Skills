@@ -27,6 +27,9 @@
 - **⚓ Truth Anchoring Protocol**: Added `【💡 Deep Linking】` analysis to automatically identify factual conflicts or complementarities across multiple sources.
 - **🔍 Deep Protocol Alignment**: Mandatory integration of the "Seven Holographic Lenses" protocol, ensuring outputs include "Mind Maps" and "Pitfall Guides".
 - **🛡️ Enhanced Robustness**: Optimized SSL verification for offline testing and added auto-fix for character encoding issues (Mojibake) on major platforms.
+- **⚛️ Deep Fission Module**: Added atomic-level contradiction analysis and version archeology module to reveal counter-intuitive conclusions (Style: `.fission-section`).
+- **🔍 Strict Search Filter**: Upgraded HTML interaction; search box now **strictly hides** non-matching content blocks instead of just highlighting, providing a focused reading experience.
+- **🛡️ Mermaid Safety Protocol**: Built-in syntax auto-correction mechanism that forcibly escapes special characters to prevent diagram rendering crashes.
 
 ---
 
