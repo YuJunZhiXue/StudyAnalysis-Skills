@@ -29,6 +29,9 @@ except ImportError:
     console = None
     Progress = None
 
+# Platform Check
+IS_WINDOWS = sys.platform == 'win32'
+
 # ==========================================
 # AUTO-DEPENDENCY INSTALLER
 # ==========================================
@@ -43,6 +46,7 @@ def install_dependencies():
         sys.exit(1)
         
     try:
+        # pip install -r handles environment markers like '; sys_platform == "win32"' automatically
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_path])
         print("[System] Dependencies installed. Restarting script...")
         os.execv(sys.executable, [sys.executable] + sys.argv)
@@ -60,9 +64,14 @@ try:
     from rapidocr_onnxruntime import RapidOCR
     import cv2 
     from PIL import Image
-    # COM for .doc
-    import win32com.client
-    import pythoncom
+    
+    # COM for .doc (Windows only)
+    if IS_WINDOWS:
+        import win32com.client
+        import pythoncom
+    else:
+        win32com = None
+        pythoncom = None
 except ImportError:
     install_dependencies()
 
@@ -73,7 +82,7 @@ import html2text
 import docx
 import pypdf
 from rapidocr_onnxruntime import RapidOCR
-# win32com might fail on non-windows, handle gracefully later
+# win32com handled above with IS_WINDOWS check
 
 # ==========================================
 # CONFIGURATION
@@ -103,14 +112,31 @@ class Config:
     @staticmethod
     def get_browser_path():
         config_file = Config.get_browser_config_path()
-        default_paths = [
-            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-            r"C:\Program Files\Mozilla Firefox\firefox.exe",
-            r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
-        ]
+        
+        # Cross-platform default paths
+        if IS_WINDOWS:
+            default_paths = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                r"C:\Program Files\Mozilla Firefox\firefox.exe",
+                r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+            ]
+        elif sys.platform == 'darwin': # macOS
+            default_paths = [
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                "/Applications/Firefox.app/Contents/MacOS/firefox",
+                "/usr/local/bin/google-chrome"
+            ]
+        else: # Linux/Other
+            default_paths = [
+                "/usr/bin/google-chrome",
+                "/usr/bin/microsoft-edge",
+                "/usr/bin/firefox",
+                "/usr/local/bin/google-chrome"
+            ]
         
         def read_path():
             if not os.path.exists(config_file): return None
@@ -420,6 +446,9 @@ class ContentParser:
             return f"\n[ERROR processing PDF: {e}]"
 
     def convert_doc_to_docx(self, doc_path):
+        if not IS_WINDOWS:
+            return None, "System is not Windows. .doc conversion requires Microsoft Word COM API (Windows only)."
+
         try:
             import win32com.client
             import pythoncom
